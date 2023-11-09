@@ -3,6 +3,7 @@ using Mafi.Core.Buildings.Storages;
 using Mafi.Core.Entities;
 using Mafi.Core.Factory.Machines;
 using Mafi.Core.Factory.Recipes;
+using Mafi.Core.Factory.Transports;
 using Mafi.Core.Products;
 using Mafi.Core.Prototypes;
 using Mafi.Unity.Entities;
@@ -19,12 +20,14 @@ namespace ProductHighlight.Actions
     public class Highlight
     {
         private readonly EntitiesManager _entitiesManager;
+        private readonly ProductsSlimIdManager _productSlimIdManager;
         private readonly Mafi.NewInstanceOf<EntityHighlighter> _entityHighlighter;
         private readonly ProtosDb _protosDb;
 
-        public Highlight(EntitiesManager entitiesManager, Mafi.NewInstanceOf<EntityHighlighter> entityHighlighter, ProtosDb db)
+        public Highlight(EntitiesManager entitiesManager, ProductsSlimIdManager productSlimIdManager, Mafi.NewInstanceOf<EntityHighlighter> entityHighlighter, ProtosDb db)
         {
             _entitiesManager = entitiesManager;
+            _productSlimIdManager = productSlimIdManager;
             _entityHighlighter = entityHighlighter;
             _protosDb = db;
         }
@@ -71,16 +74,34 @@ namespace ProductHighlight.Actions
                 {
                     if (s.StoredProduct.Value.Id.ToString() == highlightProduct)
                     {
-                        _entityHighlighter.Instance.Highlight(s, ColorRgba.Blue);
+                        _entityHighlighter.Instance.Highlight(s, ColorRgba.Magenta);
                     }
                 }
             }
         }
-        
+
+        public void highlightTransport(string product)
+        {
+            string highlightProduct = "Product_" + product;
+            foreach (Entity e in _entitiesManager.GetAllEntitiesOfType<Transport>())
+            {
+                Transport t = e as Transport;
+                foreach (var tp in t.TransportedProducts.AsEnumerable())
+                {
+                    if (tp.SlimId.ToFullOrPhantom(_productSlimIdManager).Id.ToString() == highlightProduct)
+                    {
+                        _entityHighlighter.Instance.Highlight(t, ColorRgba.LightYellow);
+                        break; // No need tom check other products on the transport
+                    }
+                }
+            }
+        }
+
         public void highlightAll(String product)
         {
             highlightMachines(product);
             highlightStorage(product);
+            highlightTransport(product);
         }
 
         public void clearHighlights()

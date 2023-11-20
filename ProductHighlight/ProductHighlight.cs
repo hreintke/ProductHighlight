@@ -10,7 +10,7 @@ namespace ProductHighlight
     [GlobalDependency(RegistrationMode.AsEverything)]
     public sealed class ProductHighlight : IMod
     {
-        public string Name => "COI_Mod_Two";
+        public string Name => "ProductHighlight";
 
         public int Version => 1;
         public static Version ModVersion = new Version(0, 0, 1);

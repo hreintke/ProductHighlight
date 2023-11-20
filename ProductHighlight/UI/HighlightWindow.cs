@@ -18,10 +18,13 @@ namespace ProductHighlight.UI
     [GlobalDependency(RegistrationMode.AsEverything)]
     public class HighlightWindow : WindowView
     {
-        private Btn phlButton;
+        private StackContainer stackContainer;
+        public Btn phlButton;
         private Btn phlClearButton;
+        private Btn phlUsage;
         private Dropdwn phlDropdown;
         public static string selectedProduct;
+        private IOrderedEnumerable<ProductProto> sortedProductProtos;
         private List<String> productList;
         private readonly ProtosDb _protosDb;
         private readonly  Highlight _highlight;
@@ -30,46 +33,56 @@ namespace ProductHighlight.UI
         {
             _protosDb = db;
             _highlight = highlight;
-            productList = _protosDb.Filter<ProductProto>(_ => true).Select(x => x.Id.ToString().Replace("Product_", "")).OrderBy(x => x).ToList();
-            selectedProduct = productList.ElementAt(0);
+            sortedProductProtos = _protosDb.Filter<ProductProto>(pp => pp.IsAvailable).OrderBy(x => x.Strings.Name.TranslatedString);
+            productList = sortedProductProtos.Select(x => x.Strings.Name.TranslatedString).ToList();
+            selectedProduct = sortedProductProtos.ElementAt(0).Id.Value;
         }
 
         protected override void BuildWindowContent()
         {
             SetTitle("Product highlight");
-            SetContentSize(680f, 400f);
+            SetContentSize(280f, 320f);
             PositionSelfToCenter();
             MakeMovable();
 
-            StackContainer stackContainer = Builder
+            stackContainer = Builder
                 .NewStackContainer("PHL Stack")
                 .SetStackingDirection(StackContainer.Direction.TopToBottom)
                 .SetSizeMode(StackContainer.SizeMode.Dynamic)
-                .SetInnerPadding(Offset.All(15f))
                 .SetItemSpacing(15f)
-                .PutToTopOf(this, 0.0f);
+                .SetInnerPadding(new Offset(15f, 15f, 15f, 15f));
 
             phlButton = Builder
-                .NewBtnGeneral("PHL Highlight Button")
-                .SetButtonStyle(Style.Global.GeneralBtn)
-                .SetText("Highlight Selected")
-                .OnClick(() => _highlight.highlightAll(selectedProduct))
-                .AddToolTip("Highlight Machines and Storages for the selected product");
-            phlButton.AppendTo(stackContainer);
+                .NewBtnPrimary("PHL Highlight Button")
+                .SetButtonStyle(Style.Global.PrimaryBtn)
+                .SetText("Machine Status")
+                .OnClick(() => _highlight.highlightStatus(selectedProduct))
+                .AddToolTip("Shows running status for all machines producing or consuming the selected product ");
+            phlButton.AppendTo(stackContainer, 2 * phlButton.GetOptimalSize(), ContainerPosition.LeftOrTop);
+
+            phlButton = Builder
+                .NewBtnPrimary("PHL Usage Button")
+                .SetButtonStyle(Style.Global.PrimaryBtn)
+                .SetText("Product Usage")
+                .OnClick(() => _highlight.highlightUsage(selectedProduct))
+                .AddToolTip("Shows all elements where the selected product is currently configured and located");
+            phlButton.AppendTo(stackContainer, 2 * phlButton.GetOptimalSize(), ContainerPosition.LeftOrTop);
 
             phlClearButton = Builder
-                .NewBtnGeneral("PHL Clear Button")
-                .SetButtonStyle(Style.Global.GeneralBtn)
-                .SetText("Clear Highlights")
+                .NewBtnPrimary("PHL Clear Button")
+                .SetButtonStyle(Style.Global.PrimaryBtn)
+                .SetText("Clear")
                 .OnClick(() => _highlight.clearHighlights())
                 .AddToolTip("Clear all highlights");
-            phlClearButton.AppendTo(stackContainer);
+            phlClearButton.AppendTo(stackContainer, 2 * phlButton.GetOptimalSize(), ContainerPosition.LeftOrTop);
 
             phlDropdown = Builder
-                .NewDropdown("COI Dropdown")
+                .NewDropdown("PHL Dropdown")
                 .AddOptions(productList)
-                .OnValueChange(i => selectedProduct = productList.ElementAt(i));
+                .OnValueChange(i => selectedProduct = sortedProductProtos.ElementAt(i).Id.Value);
             phlDropdown.AppendTo(stackContainer);
+
+            stackContainer.PutTo(GetContentPanel());
         }
     }
 }

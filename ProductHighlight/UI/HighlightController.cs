@@ -1,4 +1,5 @@
 ﻿using Mafi;
+using Mafi.Core;
 using Mafi.Core.GameLoop;
 using Mafi.Unity;
 using Mafi.Unity.InputControl;
@@ -12,23 +13,40 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using static System.Runtime.CompilerServices.RuntimeHelpers;
+using ProductHighlight.Logging;
 
 namespace ProductHighlight.UI
 {
     [GlobalDependency(RegistrationMode.AsEverything)]
-    public class HighlightController : BaseWindowController<HighlightWindow>, IToolbarItemInputController
+    public class HighlightController : BaseWindowController<HighlightWindow>
     {
         private readonly ToolbarController _toolbarController;
+        private readonly KeyBindings WindowKey = KeyBindings.FromKey(KbCategory.General, KeyCode.F7);
+        private bool windowOpen = false;
+        private ShortcutsManager _shortcutsManager;
 
-        public HighlightController(IUnityInputMgr inputManager, IGameLoopEvents gameLoop, HighlightWindow window, ToolbarController toolbarController) : base(inputManager, gameLoop, window)
+        public HighlightController(IUnityInputMgr inputManager, IGameLoopEvents gameLoop, HighlightWindow window, ShortcutsManager shortcutsManager) 
+                    : base(inputManager, gameLoop, window)
         {
-            _toolbarController = toolbarController;
+            _shortcutsManager = shortcutsManager;
+            gameLoop.InputUpdate.AddNonSaveable(this, myUpdate);
         }
 
-        public override void RegisterUi(UiBuilder builder)
+        public void myUpdate(GameTime gameTime)
         {
-            _toolbarController.AddMainMenuButton("PHL_Toolbar", this, "unknown.png", 1338f, _ => KeyBindings.FromKey(KbCategory.Tools, KeyCode.F7));
-            base.RegisterUi(builder);
+            if (_shortcutsManager.IsDown(WindowKey))
+            {
+                if (!windowOpen)
+                {
+                    Activate();
+                    windowOpen = true;
+                }
+                else
+                {
+                    Deactivate();
+                    windowOpen = false;
+                }
+            }
         }
 
         public bool IsVisible => true;

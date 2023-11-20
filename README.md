@@ -6,11 +6,11 @@ A mod for [Captain of Industry game](https://www.captain-of-industry.com/).
 
 - Highlight the status of machines, farms, animalFarms producing or consuming a selected product.
 
-    <img src="./images/status.png" width="auto">
+    <img src="./images/status.PNG" alt="status" width="auto">
 	
 - Highlight the usage of machines, storage, transport, vehicles from a selected product.
 	
-	<img src="./images/status.png" width="auto">
+	<img src="./images/usage.png" width="auto">
 
 
 ## Installation

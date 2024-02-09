@@ -1,4 +1,5 @@
 ﻿using Mafi;
+using Mafi.Collections;
 using Mafi.Core;
 using Mafi.Core.Buildings.Farms;
 using Mafi.Core.Buildings.Storages;
@@ -7,8 +8,10 @@ using Mafi.Core.Factory.Machines;
 using Mafi.Core.Factory.Recipes;
 using Mafi.Core.Factory.Transports;
 using Mafi.Core.GameLoop;
+using Mafi.Core.Input;
 using Mafi.Core.Products;
 using Mafi.Core.Prototypes;
+using Mafi.Core.Terrain.Designation;
 using Mafi.Core.Vehicles;
 using Mafi.Core.Vehicles.Excavators;
 using Mafi.Core.Vehicles.Trucks;
@@ -29,13 +32,14 @@ namespace ProductHighlight.Actions
     [GlobalDependency(RegistrationMode.AsSelf, false)]
     public class Highlight
     {
- //       IGameLoopEvents _gameLoopEvents;
         private readonly EntitiesManager _entitiesManager;
         private readonly IVehiclesManager _vehiclesManager;
- //       private readonly ShortcutsManager _shortcutsManager;
         private readonly ProductsSlimIdManager _productSlimIdManager;
         private readonly Mafi.NewInstanceOf<EntityHighlighter> _entityHighlighter;
         private readonly ProtosDb _protosDb;
+        private readonly InputScheduler _inputScheduler;
+        private readonly TerrainMiningManager _terrainMiningManager;
+        private readonly TerrainDumpingManager _terrainDumpingManager;
         private ColorRgba colorProducer = ColorRgba.White;
         private ColorRgba colorConsumer = ColorRgba.Yellow;
         private ColorRgba colorWorking = ColorRgba.Green;
@@ -49,6 +53,9 @@ namespace ProductHighlight.Actions
                             IVehiclesManager vehiclesManager,
                             ProductsSlimIdManager productSlimIdManager,
                             Mafi.NewInstanceOf<EntityHighlighter> entityHighlighter,
+                            InputScheduler inputScheduler,
+                            TerrainMiningManager terrainMiningManager,
+                            TerrainDumpingManager terrainDumpingManager,
                             ProtosDb db)
         {
            
@@ -56,6 +63,9 @@ namespace ProductHighlight.Actions
             _vehiclesManager = vehiclesManager;
             _productSlimIdManager = productSlimIdManager;
             _entityHighlighter = entityHighlighter;
+            _inputScheduler = inputScheduler;
+            _terrainDumpingManager = terrainDumpingManager;
+            _terrainMiningManager = terrainMiningManager;
             _protosDb = db;
         }
 
@@ -291,6 +301,27 @@ namespace ProductHighlight.Actions
          public void clearHighlights()
         {
             _entityHighlighter.Instance.ClearAllHighlights();
+        }
+
+        public void clearMiningDumping()
+        {
+            Lyst<Tile2i> dl = new Lyst<Tile2i>();
+
+            var dumpingTerrainDesignations = _terrainDumpingManager.DumpingDesignations
+                .Where(x => x.IsFulfilled);
+            foreach (var designation in dumpingTerrainDesignations)
+            {
+                dl.Add(designation.OriginTileCoord);
+            }
+
+            var miningTerrainDesignations = _terrainMiningManager.MiningDesignations
+                .Where(x => x.IsFulfilled);
+            foreach (var designation in miningTerrainDesignations)
+            {
+                dl.Add(designation.OriginTileCoord);
+            }
+
+            _inputScheduler.ScheduleInputCmd(new RemoveDesignationsCmd(dl.ToImmutableArray()));
         }
 
     }

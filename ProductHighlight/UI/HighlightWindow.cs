@@ -41,7 +41,7 @@ namespace ProductHighlight.UI
         protected override void BuildWindowContent()
         {
             SetTitle("Product highlight");
-            SetContentSize(280f, 320f);
+            SetContentSize(320f, 500f);
             PositionSelfToCenter();
             MakeMovable();
 
@@ -51,6 +51,14 @@ namespace ProductHighlight.UI
                 .SetSizeMode(StackContainer.SizeMode.Dynamic)
                 .SetItemSpacing(15f)
                 .SetInnerPadding(new Offset(15f, 15f, 15f, 15f));
+
+            phlButton = Builder
+                .NewBtnPrimary("PHL Highlight Button")
+                .SetButtonStyle(Style.Global.PrimaryBtn)
+                .SetText("Clear Mine/Dump")
+                .OnClick(() => _highlight.clearMiningDumping())
+                .AddToolTip("Shows running status for all machines producing or consuming the selected product ");
+            phlButton.AppendTo(stackContainer, 2 * phlButton.GetOptimalSize(), ContainerPosition.LeftOrTop);
 
             phlButton = Builder
                 .NewBtnPrimary("PHL Highlight Button")

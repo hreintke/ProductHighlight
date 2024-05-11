@@ -7,7 +7,7 @@ A mod for [Captain of Industry game](https://www.captain-of-industry.com/).
 	
 - Highlight the usage of machines, storage, transport, vehicles from a selected product.
 	
-	<img src="./images/usage.png" width="auto">
+	<img src="./images/ProductUsage.png" width="auto">
 
 
 ## Installation

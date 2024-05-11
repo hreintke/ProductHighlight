@@ -11,7 +11,7 @@ using Mafi.Core.Prototypes;
 using Mafi.Core.Products;
 using Mafi;
 using ProductHighlight.Actions;
-
+using UnityEngine;
 
 namespace ProductHighlight.UI
 {
@@ -28,6 +28,7 @@ namespace ProductHighlight.UI
         private List<String> productList;
         private readonly ProtosDb _protosDb;
         private readonly  Highlight _highlight;
+        public Txt fpsLabel;
 
         public HighlightWindow(ProtosDb db, Highlight highlight) : base("HighlightWindow")
         {
@@ -41,9 +42,10 @@ namespace ProductHighlight.UI
         protected override void BuildWindowContent()
         {
             SetTitle("Product highlight");
-            SetContentSize(320f, 500f);
+            SetContentSize(320f, 320f);
             PositionSelfToCenter();
             MakeMovable();
+
 
             stackContainer = Builder
                 .NewStackContainer("PHL Stack")
@@ -51,22 +53,6 @@ namespace ProductHighlight.UI
                 .SetSizeMode(StackContainer.SizeMode.Dynamic)
                 .SetItemSpacing(15f)
                 .SetInnerPadding(new Offset(15f, 15f, 15f, 15f));
-
-            phlButton = Builder
-                .NewBtnPrimary("PHL Highlight Button")
-                .SetButtonStyle(Style.Global.PrimaryBtn)
-                .SetText("Clear Mine/Dump")
-                .OnClick(() => _highlight.clearMiningDumping())
-                .AddToolTip("Shows running status for all machines producing or consuming the selected product ");
-            phlButton.AppendTo(stackContainer, 2 * phlButton.GetOptimalSize(), ContainerPosition.LeftOrTop);
-
-            phlButton = Builder
-                .NewBtnPrimary("PHL Highlight Button")
-                .SetButtonStyle(Style.Global.PrimaryBtn)
-                .SetText("Machine Status")
-                .OnClick(() => _highlight.highlightStatus(selectedProduct))
-                .AddToolTip("Shows running status for all machines producing or consuming the selected product ");
-            phlButton.AppendTo(stackContainer, 2 * phlButton.GetOptimalSize(), ContainerPosition.LeftOrTop);
 
             phlButton = Builder
                 .NewBtnPrimary("PHL Usage Button")

@@ -14,6 +14,9 @@ using System.Threading.Tasks;
 using UnityEngine;
 using static System.Runtime.CompilerServices.RuntimeHelpers;
 using ProductHighlight.Logging;
+using System.Diagnostics;
+using Mafi.Core.Buildings.Towers;
+using Mafi.Unity.Mine;
 
 namespace ProductHighlight.UI
 {
@@ -21,36 +24,44 @@ namespace ProductHighlight.UI
     public class HighlightController : BaseWindowController<HighlightWindow>
     {
         private readonly ToolbarController _toolbarController;
-        private readonly KeyBindings WindowKey = KeyBindings.FromKey(KbCategory.General, KeyCode.F7);
+        private readonly KeyBindings WindowKey = KeyBindings.FromKey(KbCategory.General,ShortcutMode.Game, KeyCode.F7);
         private bool windowOpen = false;
         private ShortcutsManager _shortcutsManager;
+        private Stopwatch fpsTimer;
+        private HighlightWindow _window;
 
-        public HighlightController(IUnityInputMgr inputManager, IGameLoopEvents gameLoop, HighlightWindow window, ShortcutsManager shortcutsManager) 
-                    : base(inputManager, gameLoop, window)
+        public HighlightController(
+            IUnityInputMgr inputManager, 
+            IGameLoopEvents gameLoop,
+            HighlightWindow window,
+            ShortcutsManager shortcutsManager,
+            UiBuilder builder) 
+                    : base(inputManager, gameLoop, builder, window)
         {
             _shortcutsManager = shortcutsManager;
-            gameLoop.InputUpdate.AddNonSaveable(this, myUpdate);
+            _window = window;
+            fpsTimer = new Stopwatch();
+            fpsTimer.Start();
+            inputManager.RegisterGlobalShortcut((Func<ShortcutsManager, KeyBindings>)(m => { return WindowKey; }), this);
         }
 
-        public void myUpdate(GameTime gameTime)
+        public override void Activate()
         {
-            if (_shortcutsManager.IsDown(WindowKey))
-            {
-                if (!windowOpen)
-                {
-                    Activate();
-                    windowOpen = true;
-                }
-                else
-                {
-                    Deactivate();
-                    windowOpen = false;
-                }
-            }
+            windowOpen = true;
+
+            base.Activate();
+            _window.Show();
         }
 
-        public bool IsVisible => true;
-        public bool DeactivateShortcutsIfNotVisible => false;
-        public event Action<IToolbarItemInputController> VisibilityChanged;
+        public override void Deactivate()
+        {
+            windowOpen = false;
+            _window.Hide();
+            base.Deactivate();
+        }
+
+ //       public bool IsVisible => true;
+//        public bool DeactivateShortcutsIfNotVisible => false;
+ //       public event Action<IToolbarItemInputController> VisibilityChanged;
     }
 }

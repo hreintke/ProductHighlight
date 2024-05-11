@@ -76,8 +76,8 @@ namespace ProductHighlight.Actions
                 Type entityType = e.GetType();
                 if (entityType == typeof(Machine))
                 {
-                    highlightMachine(e as Machine, highlightProduct, true);
-                } 
+                    highlightMachine(e as Machine, highlightProduct);
+                }
                 else if (entityType == typeof(Storage))
                 {
                     highlightStorage(e as Storage, highlightProduct);
@@ -88,11 +88,11 @@ namespace ProductHighlight.Actions
                 }
                 else if (entityType == typeof(AnimalFarm))
                 {
-                    highlightAnimalFarm(e as AnimalFarm, highlightProduct, true);
+                    highlightAnimalFarm(e as AnimalFarm, highlightProduct);
                 }
                 else if (entityType == typeof(Farm))
                 {
-                    highlightFarm(e as Farm, highlightProduct, true);
+                    highlightFarm(e as Farm, highlightProduct);
                 }
                 else if (entityType == typeof(Truck))
                 {
@@ -105,60 +105,18 @@ namespace ProductHighlight.Actions
             }
         }
 
-        public void highlightStatus(string highlightProduct)
+        public void highlightAnimalFarm(AnimalFarm animalFarm, string highlightProduct)
         {
-            foreach (Entity e in _entitiesManager.Entities)
-            {
-                Type entityType = e.GetType();
-                if (entityType == typeof(Machine))
-                {
-                    highlightMachine(e as Machine, highlightProduct, false);
-                }
-                else if (entityType == typeof(AnimalFarm))
-                {
-                    highlightAnimalFarm(e as AnimalFarm, highlightProduct, false);
-                }
-                else if (entityType == typeof(Farm))
-                {
-                    highlightFarm(e as Farm, highlightProduct, false);
-                }
-            }
-        }
-
-        public void highlightAnimalFarm(AnimalFarm animalFarm, string highlightProduct, bool usage)
-        {
-            ColorRgba color;
 
             if ((animalFarm.Prototype.Animal.Id.Value == highlightProduct) ||
                     (animalFarm.Prototype.CarcassProto.Id.Value == highlightProduct) ||
                     (animalFarm.Prototype.ProducedPerAnimalPerMonth.Value.Product.Id.Value == highlightProduct))
             {
-                if (usage)
-                {
-                    color = colorProducer;
-                }
-                else
-                {
-                    switch (animalFarm.CurrentState)
-                    {
-                        case AnimalFarm.State.MissingFood:
-                        case AnimalFarm.State.MissingWorkers:
-                        case AnimalFarm.State.MissingWater:
-                            color = colorFail;
-                            break;
-                        case AnimalFarm.State.Working:
-                            color = colorWorking;
-                            break;
-                        default:
-                            color = colorOther;
-                            break;
-                    }
-                }
-                _entityHighlighter.Instance.Highlight(animalFarm, color);
+                _entityHighlighter.Instance.Highlight(animalFarm, colorProducer);
             }
         }
 
-        public void highlightMachine(Machine machine, string highlightProduct, bool usage)
+        public void highlightMachine(Machine machine, string highlightProduct)
         {
             int needsHighlight = 0; ;
             ColorRgba color;
@@ -185,34 +143,13 @@ namespace ProductHighlight.Actions
                 }
                 if (needsHighlight != 0)
                 {
-                    if (usage)
-                    {
-                        color = (needsHighlight == 1) ? colorProducer : colorConsumer;
-                    }
-                    else
-                    {
-                        switch (machine.CurrentState)
-                        {
-                            case Machine.State.NotEnoughComputing:
-                            case Machine.State.NotEnoughInput:
-                            case Machine.State.NotEnoughPower:
-                            case Machine.State.NotEnoughWorkers:
-                                color = colorFail;
-                                break;
-                            case Machine.State.Working:
-                                color = colorWorking;
-                                break;
-                            default:
-                                color = colorOther;
-                                break;
-                        }
-                    }
+                    color = (needsHighlight == 1) ? colorProducer : colorConsumer;
                     _entityHighlighter.Instance.Highlight(machine, color);
                 }
             }
         }
 
-        public void highlightFarm(Farm farm, string highlightProduct, bool usage)
+        public void highlightFarm(Farm farm, string highlightProduct)
         {
             foreach (var c in farm.Schedule)
             {
@@ -220,32 +157,7 @@ namespace ProductHighlight.Actions
                 {
                     if (c.Value.ProductProduced.Product.Id.Value.ToString() == highlightProduct)
                     {
-                        ColorRgba color;
-
-                        if (usage)
-                        {
-                            color = colorProducer;
-                        }
-                        else
-                        {
-                            switch (farm.CurrentState)
-                            {
-                                case Farm.State.NotEnoughWorkers:
-                                case Farm.State.NotEnoughWater:
-                                case Farm.State.Broken:
-                                case Farm.State.NoCropSelected:
-                                    color = colorFail;
-                                    break;
-                                case Farm.State.Growing:
-                                    color = colorWorking;
-                                    break;
-                                default:
-                                    color = colorOther;
-                                    break;
-                            }
-                        }
-                        _entityHighlighter.Instance.Highlight(farm, color);
-                        break;
+                        _entityHighlighter.Instance.Highlight(farm, colorProducer);
                     }
                 }
             }
@@ -302,27 +214,5 @@ namespace ProductHighlight.Actions
         {
             _entityHighlighter.Instance.ClearAllHighlights();
         }
-
-        public void clearMiningDumping()
-        {
-            Lyst<Tile2i> dl = new Lyst<Tile2i>();
-
-            var dumpingTerrainDesignations = _terrainDumpingManager.DumpingDesignations
-                .Where(x => x.IsFulfilled);
-            foreach (var designation in dumpingTerrainDesignations)
-            {
-                dl.Add(designation.OriginTileCoord);
-            }
-
-            var miningTerrainDesignations = _terrainMiningManager.MiningDesignations
-                .Where(x => x.IsFulfilled);
-            foreach (var designation in miningTerrainDesignations)
-            {
-                dl.Add(designation.OriginTileCoord);
-            }
-
-            _inputScheduler.ScheduleInputCmd(new RemoveDesignationsCmd(dl.ToImmutableArray()));
-        }
-
     }
 }

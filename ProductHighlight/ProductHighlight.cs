@@ -15,6 +15,8 @@ namespace ProductHighlight
         public static Version ModVersion = new Version(0, 0, 3);
         public bool IsUiOnly => false;
 
+        public Option<IConfig> ModConfig => throw new NotImplementedException();
+
         public void ChangeConfigs(Lyst<IConfig> configs)
         {
         }
@@ -29,6 +31,11 @@ namespace ProductHighlight
 
         public void RegisterPrototypes(ProtoRegistrator registrator)
         {
+        }
+
+        public void EarlyInit(DependencyResolver resolver)
+        {
+            
         }
     }
 

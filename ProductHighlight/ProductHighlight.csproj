@@ -56,13 +56,21 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\..\..\..\Utilities\Steam\steamapps\common\Captain of Industry\Captain of Industry_Data\Managed\UnityEngine.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.AudioModule">
       <HintPath>..\..\..\..\..\Utilities\Steam\steamapps\common\Captain of Industry\Captain of Industry_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null" />
+    <Reference Include="UnityEngine.TextRenderingModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\Utilities\Steam\steamapps\common\Captain of Industry\Captain of Industry_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Actions\Highlight.cs" />
+    <Compile Include="Extensions\Extensions.cs" />
     <Compile Include="Logging\Log.cs" />
     <Compile Include="ProductHighlight.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

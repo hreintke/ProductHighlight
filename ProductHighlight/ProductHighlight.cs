@@ -12,7 +12,7 @@ namespace ProductHighlight
         public string Name => "ProductHighlight";
 
         public int Version => 1;
-        public static Version ModVersion = new Version(0, 0, 3);
+        public static Version ModVersion = new Version(2, 0, 0);
         public bool IsUiOnly => false;
 
         public Option<IConfig> ModConfig => throw new NotImplementedException();

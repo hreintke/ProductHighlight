@@ -15,7 +15,9 @@ using Mafi.Core.Terrain.Designation;
 using Mafi.Core.Vehicles;
 using Mafi.Core.Vehicles.Excavators;
 using Mafi.Core.Vehicles.Trucks;
+using Mafi.Unity.Camera;
 using Mafi.Unity.Entities;
+using Mafi.Core.Entities.Static.Layout;
 using Mafi.Unity.InputControl;
 using Microsoft.SqlServer.Server;
 using ProductHighlight.UI;
@@ -26,12 +28,65 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using ProductHighlight.Extensions;
+using ProductHighlight.Logging;
+using Mafi.Core.Entities.Dynamic;
 
 namespace ProductHighlight.Actions
 {
     [GlobalDependency(RegistrationMode.AsSelf, false)]
     public class Highlight
     {
+        public enum EntityType
+        {
+            Storage,
+            Consumer,
+            Producer,
+            Transport
+        };
+
+        public class EntityTypeElement
+        {
+            public int currentIndex;
+            public Lyst<EntityId> currentList;
+
+            public EntityTypeElement()
+            {
+                reset();
+            }
+
+            public void reset()
+            {
+                currentIndex = -1;
+                currentList = new Lyst<EntityId>();
+            }
+
+            public EntityId nextEntity()
+            {
+                if (currentList.Count == 0)
+                {
+                    return EntityId.Invalid;
+                }
+                currentIndex.NextModulo(currentList.Count);
+                return currentList[currentIndex];
+            }
+
+            public EntityId previousEntity()
+            {
+                if (currentList.Count == 0)
+                {
+                    return EntityId.Invalid;
+                }
+                currentIndex.PreviousModulo(currentList.Count);
+                return currentList[currentIndex];
+            }
+
+            public int listCount()
+            {
+                return currentList.Count;
+            }
+        }
+
         private readonly EntitiesManager _entitiesManager;
         private readonly IVehiclesManager _vehiclesManager;
         private readonly ProductsSlimIdManager _productSlimIdManager;
@@ -40,6 +95,7 @@ namespace ProductHighlight.Actions
         private readonly InputScheduler _inputScheduler;
         private readonly TerrainMiningManager _terrainMiningManager;
         private readonly TerrainDumpingManager _terrainDumpingManager;
+        private CameraController _cameraController;
         private ColorRgba colorProducer = ColorRgba.White;
         private ColorRgba colorConsumer = ColorRgba.Yellow;
         private ColorRgba colorWorking = ColorRgba.Green;
@@ -47,6 +103,9 @@ namespace ProductHighlight.Actions
         private ColorRgba colorOther = ColorRgba.Yellow;
         private ColorRgba colorStoarge = ColorRgba.Magenta;
         private ColorRgba colorTransport = ColorRgba.Green;
+        private int storageIndex = -1;
+
+        Dict<EntityType, EntityTypeElement> currentEntities;
 
         public Highlight(
                             EntitiesManager entitiesManager,
@@ -56,6 +115,7 @@ namespace ProductHighlight.Actions
                             InputScheduler inputScheduler,
                             TerrainMiningManager terrainMiningManager,
                             TerrainDumpingManager terrainDumpingManager,
+                            CameraController cameraController,
                             ProtosDb db)
         {
            
@@ -66,57 +126,123 @@ namespace ProductHighlight.Actions
             _inputScheduler = inputScheduler;
             _terrainDumpingManager = terrainDumpingManager;
             _terrainMiningManager = terrainMiningManager;
+            _cameraController = cameraController;
             _protosDb = db;
+
+            clearEntityDict();
         }
 
-        public void highlightUsage(string highlightProduct)
+        public void clearEntityDict()
         {
+            currentEntities = new Dict<EntityType, EntityTypeElement>()
+            {
+                {EntityType.Producer, new EntityTypeElement()},
+                {EntityType.Consumer, new EntityTypeElement()},
+                {EntityType.Storage, new EntityTypeElement()},
+                {EntityType.Transport, new EntityTypeElement()},
+            };
+        }
+
+        public EntityTypeElement GetEntityTypeElement(EntityType et)
+        {
+            return (currentEntities[et]);
+        }
+
+        public void panToEntity(EntityType et, bool next)
+        {
+            if (!currentEntities[et].currentList.IsEmpty)
+            {
+                EntityId entityId = next ? currentEntities[et].nextEntity() : currentEntities[et].previousEntity();
+                if (_entitiesManager.TryGetEntity(entityId, out Entity entityOut))
+                {
+                    if (entityOut is LayoutEntity layoutEntity)
+                    {
+                        _cameraController.PanTo(new Tile2f(layoutEntity.Transform.Position.X, layoutEntity.Transform.Position.Y));
+                    }
+                    else if (entityOut is Vehicle vehicle)
+                    {
+                        _cameraController.PanTo(vehicle.Position2f);
+                    }
+                } 
+            }
+        }
+
+        public void highlightUsage(ProductProto highlightProduct)
+        {
+
             foreach (Entity e in _entitiesManager.Entities)
             {
                 Type entityType = e.GetType();
                 if (entityType == typeof(Machine))
                 {
-                    highlightMachine(e as Machine, highlightProduct);
+                    switch (highlightMachine(e as Machine, highlightProduct))
+                    {
+                        case 1: currentEntities[EntityType.Producer].currentList.Add(e.Id);
+                            break;
+                        case 2: currentEntities[EntityType.Consumer].currentList.Add(e.Id);
+                            break;
+                        default: break;
+                    }
                 }
                 else if (entityType == typeof(Storage))
                 {
-                    highlightStorage(e as Storage, highlightProduct);
+                    if (highlightStorage(e as Storage, highlightProduct))
+                    {
+                        currentEntities[EntityType.Storage].currentList.Add(e.Id);
+                    };
                 }
                 else if (entityType == typeof(Transport))
                 {
-                    highlightTransport(e as Transport, highlightProduct);
+                    if (highlightTransport(e as Transport, highlightProduct))
+                    {
+ //                       currentEntities[EntityType.Transport].currentList.Add(e.Id);
+                    }
                 }
                 else if (entityType == typeof(AnimalFarm))
                 {
-                    highlightAnimalFarm(e as AnimalFarm, highlightProduct);
+                    if (highlightAnimalFarm(e as AnimalFarm, highlightProduct))
+                    {
+                        currentEntities[EntityType.Producer].currentList.Add(e.Id);
+                    }
                 }
                 else if (entityType == typeof(Farm))
                 {
-                    highlightFarm(e as Farm, highlightProduct);
+                    if (highlightFarm(e as Farm, highlightProduct))
+                    {
+                        currentEntities[EntityType.Producer].currentList.Add(e.Id);
+                    }
                 }
                 else if (entityType == typeof(Truck))
                 {
-                    highlightTruck(e as Truck, highlightProduct);
+                    if (highlightTruck(e as Truck, highlightProduct))
+                    {
+                        currentEntities[EntityType.Transport].currentList.Add(e.Id);
+                    }
                 }
                 else if (entityType == typeof(Excavator))
                 {
-                    highlightExcavator(e as Excavator, highlightProduct);
+                    if (highlightExcavator(e as Excavator, highlightProduct))
+                    {
+                        currentEntities[EntityType.Transport].currentList.Add(e.Id);
+                    }
                 }
             }
         }
 
-        public void highlightAnimalFarm(AnimalFarm animalFarm, string highlightProduct)
+        public bool highlightAnimalFarm(AnimalFarm animalFarm, ProductProto highlightProduct)
         {
 
-            if ((animalFarm.Prototype.Animal.Id.Value == highlightProduct) ||
-                    (animalFarm.Prototype.CarcassProto.Id.Value == highlightProduct) ||
-                    (animalFarm.Prototype.ProducedPerAnimalPerMonth.Value.Product.Id.Value == highlightProduct))
+            if ((animalFarm.Prototype.Animal == highlightProduct) ||
+                    (animalFarm.Prototype.CarcassProto == highlightProduct) ||
+                    (animalFarm.Prototype.ProducedPerAnimalPerMonth.Value.Product == highlightProduct))
             {
                 _entityHighlighter.Instance.Highlight(animalFarm, colorProducer);
+                return true;
             }
+            return false;
         }
 
-        public void highlightMachine(Machine machine, string highlightProduct)
+        public int highlightMachine(Machine machine, ProductProto highlightProduct)
         {
             int needsHighlight = 0; ;
             ColorRgba color;
@@ -125,7 +251,7 @@ namespace ProductHighlight.Actions
             {
                 foreach (RecipeOutput ri in r.AllOutputs.AsEnumerable())
                 {
-                    if (ri.Product.Id.Value == highlightProduct)
+                    if (ri.Product == highlightProduct)
                     {
                         needsHighlight = 1;
                     }
@@ -134,7 +260,7 @@ namespace ProductHighlight.Actions
                 {
                     foreach (RecipeInput ri in r.AllInputs.AsEnumerable())
                     {
-                        if (ri.Product.Id.Value == highlightProduct)
+                        if (ri.Product == highlightProduct)
                         {
                             needsHighlight = 2;
                             break;
@@ -147,72 +273,83 @@ namespace ProductHighlight.Actions
                     _entityHighlighter.Instance.Highlight(machine, color);
                 }
             }
+            return needsHighlight;
         }
 
-        public void highlightFarm(Farm farm, string highlightProduct)
+        public bool highlightFarm(Farm farm, ProductProto highlightProduct)
         {
             foreach (var c in farm.Schedule)
             {
                 if (c != null)
                 {
-                    if (c.Value.ProductProduced.Product.Id.Value.ToString() == highlightProduct)
+                    if (c.Value.ProductProduced.Product == highlightProduct)
                     {
                         _entityHighlighter.Instance.Highlight(farm, colorProducer);
+                        return true;
                     }
                 }
             }
+            return false;
         }
 
-        public void highlightStorage(Storage storage, string highlightProduct) 
+        public bool highlightStorage(Storage storage, ProductProto highlightProduct) 
         {
             if (storage.StoredProduct != Option<ProductProto>.None)
             {
-                if (storage.StoredProduct.Value.Id.ToString() == highlightProduct)
+                if (storage.StoredProduct.Value == highlightProduct)
                 {
                     _entityHighlighter.Instance.Highlight(storage, ColorRgba.Magenta);
+                    return true;
                 }
             }
+            return false;
         }
 
-        public void highlightTransport(Transport transport,string highlightProduct)
+        public bool highlightTransport(Transport transport,ProductProto highlightProduct)
         {
             foreach (var tp in transport.TransportedProducts.AsEnumerable())
             {
-                if (tp.SlimId.ToFullOrPhantom(_productSlimIdManager).Id.ToString() == highlightProduct)
+                if (tp.SlimId.ToFullOrPhantom(_productSlimIdManager) == highlightProduct)
                 {
                     _entityHighlighter.Instance.Highlight(transport, colorTransport);
-                    break; // No need tom check other products on the transport
+                    return true; 
                 }
             }
+            return false;
         }
 
-        public void highlightTruck(Truck truck, string highlightProduct)
+        public bool highlightTruck(Truck truck, ProductProto highlightProduct)
         {
             var cargoEnumerator = truck.Cargo.GetEnumerator();
             while (cargoEnumerator.MoveNext())
             {
-                if (cargoEnumerator.Current.Key.Id.Value == highlightProduct)
+                if (cargoEnumerator.Current.Key == highlightProduct)
                 {
                     _entityHighlighter.Instance.Highlight(truck, colorTransport);
+                    return true;
                 }
             }
+            return false;
         }
 
-        public void highlightExcavator(Excavator excavator, string highlightProduct)
+        public bool highlightExcavator(Excavator excavator, ProductProto highlightProduct)
         {
             var cargoEnumerator = excavator.Cargo.GetEnumerator();
             while (cargoEnumerator.MoveNext())
             {
-                if (cargoEnumerator.Current.Key.Id.Value == highlightProduct)
+                if (cargoEnumerator.Current.Key == highlightProduct)
                 {
                     _entityHighlighter.Instance.Highlight(excavator, colorTransport);
+                    return true;
                 }
             }
+            return false;
         }
 
-         public void clearHighlights()
+        public void clearHighlights()
         {
             _entityHighlighter.Instance.ClearAllHighlights();
+            clearEntityDict();
         }
     }
 }

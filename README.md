@@ -23,9 +23,16 @@ The colors used are :
 
 
 colorProducer = ColorRgba.White;
+
 colorConsumer = ColorRgba.Yellow;
+
 colorStorage = ColorRgba.Magenta;
+
 colorTransport = ColorRgba.Green;
 
-There is currently no possibility to update these keys/colors
+## Usage
+
+Select a product using the search box and push the product button.
+
+The "Previous" / "Next"  buttons can be used to move the camera to the highlighted entities.
 

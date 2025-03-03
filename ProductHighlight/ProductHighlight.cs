@@ -11,8 +11,8 @@ public sealed class ProductHighlight : IMod
 {
     public string Name => "ProductHighlight";
 
-    public int Version => 1;
-    public static Version ModVersion = new Version(2, 0, 0);
+    public int Version => 4;
+    public static Version ModVersion = new Version(4, 0, 0);
     public bool IsUiOnly => false;
 
     public Option<IConfig> ModConfig => throw new NotImplementedException();

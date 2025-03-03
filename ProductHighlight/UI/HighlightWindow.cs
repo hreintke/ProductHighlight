@@ -10,21 +10,29 @@ using System.Threading.Tasks;
 using Mafi.Core.Prototypes;
 using Mafi.Core.Products;
 using Mafi;
-using ProductHighlight.Actions;
+
 using UnityEngine;
 using Mafi.Unity;
-using static Mafi.Unity.Assets.Unity.Generated.Icons;
 using Mafi.Collections.ReadonlyCollections;
 using Mafi.Core.Utils;
 using Mafi.Unity.InputControl.RecipesBook;
 using Mafi.Collections;
 using System.Collections;
 using ProductHighlight.Logging;
-using static ProductHighlight.Actions.Highlight;
 using Mafi.Unity.InputControl;
+using Mafi.Core.Entities;
+using Mafi.Core;
+using Mafi.Unity.Camera;
+using Mafi.Unity.Entities;
+using Mafi.Core.Input;
+using Mafi.Core.Vehicles;
+using Mafi.Core.Entities.Static.Layout;
+using Mafi.Core.Entities.Dynamic;
+using Mafi.Core.Factory.Transports;
+using System.Runtime.CompilerServices;
 
 
-namespace ProductHighlight.UI;
+namespace ProductHighlight;
 
 [GlobalDependency(RegistrationMode.AsEverything)]
 public class HighlightWindow : WindowView
@@ -39,7 +47,7 @@ public class HighlightWindow : WindowView
         private Btn previousButton;
         private Panel typePanel;
         private EntityType et;
-        private Highlight highlight;
+        private HighlightWindow highlightWindow;
 
         public GameObject GameObject => typePanel.GameObject;
 
@@ -48,8 +56,8 @@ public class HighlightWindow : WindowView
         public EntityTypeView(
               IUiElement parent,
               UiBuilder builder,
-              Highlight.EntityType entityType,
-              Highlight hl)
+              EntityType entityType,
+              HighlightWindow hw)
         {
             typePanel = builder.NewPanel("typePanel");
             typeName = builder.NewTxt("typeName").SetFontSize(17).SetAlignment(TextAnchor.MiddleLeft).SetText(entityType.ToString());
@@ -60,19 +68,19 @@ public class HighlightWindow : WindowView
 
             nextButton = builder.NewBtnPrimary("viewNext").SetText("Previous");
             nextButton.PutToLeftTopOf(typePanel, new Vector2(75f, 30f), Offset.Top(7f) + Offset.Left(150));
-            nextButton.OnClick(() => highlight.panToEntity(entityType, false));
+            nextButton.OnClick(() => hw.panToEntity(entityType, false));
 
             previousButton = builder.NewBtnPrimary("viewNext").SetText("Next");
             previousButton.PutToLeftTopOf(typePanel, new Vector2(75f, 30f), Offset.Top(7f) + Offset.Left(230));
-            previousButton.OnClick(() => highlight.panToEntity(entityType, true));
+            previousButton.OnClick(() => hw.panToEntity(entityType, true));
 
             et = entityType;
-            highlight = hl;
+            highlightWindow= hw;
 
         }
         public void setValue()
         {
-            typeCount.SetText(highlight.GetEntityTypeElement(et).listCount().ToString());
+            typeCount.SetText(highlightWindow.getEntityCount(et).ToString());
         }
     }
     private TxtField searchBox;
@@ -84,23 +92,38 @@ public class HighlightWindow : WindowView
     private EntityTypeView entityTypeviewProducer;
     private EntityTypeView entityTypeviewConsumer;
     private EntityTypeView entityTypeviewTransport;
+    private EntityTypeView entityTypeviewVehicle;
+    private Txt produce;
+    private Txt consume;
     private Btn showNextStorage;
     public ProductProto selectedProduct;
     private IOrderedEnumerable<ProductProto> sortedProductProtos;
-    private readonly ProtosDb _protosDb;
-    private readonly  Highlight _highlight;
+    private readonly ProtosDb protosDb;
+    private readonly  ProductHighlightManager highlightManager;
     UnlockedProtosDbForUi unlockedProtosDb;
+    private readonly EntitiesManager entitiesManager;
+    private readonly Mafi.NewInstanceOf<EntityHighlighter> entityHighlighter;
+    private CameraController cameraController;
 
     private IconContainer ic;
     private readonly Dict<ProductProto, Btn> allProductButtons = new Dict<ProductProto, Btn>();
 
-    public HighlightWindow(ProtosDb db, Highlight highlight, UnlockedProtosDbForUi ulProtoDb) : base("HighlightWindow")
+    public HighlightWindow(
+        ProtosDb db, 
+        ProductHighlightManager highlightM, 
+        UnlockedProtosDbForUi ulProtoDb,
+        EntitiesManager eManager,
+        Mafi.NewInstanceOf<EntityHighlighter> entityHighlight,
+        CameraController cameraControl) : base("HighlightWindow")
     {
-        _protosDb = db;
-        _highlight = highlight;
-        sortedProductProtos = _protosDb.Filter<ProductProto>(pp => true).OrderBy(x => x.Strings.Name.TranslatedString);
+        protosDb = db;
+        highlightManager = highlightM;
+        sortedProductProtos = protosDb.Filter<ProductProto>(pp => true).OrderBy(x => x.Strings.Name.TranslatedString);
         selectedProduct = sortedProductProtos.ElementAt(0);
         unlockedProtosDb = ulProtoDb;
+        entityHighlighter = entityHighlight;
+        cameraController = cameraControl;
+        entitiesManager = eManager;
     }
 
     private readonly Set<Proto> m_protosFound = new Set<Proto>();
@@ -108,7 +131,7 @@ public class HighlightWindow : WindowView
     protected override void BuildWindowContent()
     {
         SetTitle("Product highlight");
-        SetContentSize(600f, 300f);
+        SetContentSize(600f, 350f);
         PositionSelfToCenter();
         MakeMovable();
 
@@ -164,40 +187,56 @@ public class HighlightWindow : WindowView
         phlClearButton.OnClick( () => onClear());
         phlClearButton.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 30f), Offset.Top(10f) + Offset.Left(460f));
 
-
-        
-
-        entityTypeviewStorage = new EntityTypeView(this, Builder, Highlight.EntityType.Storage, _highlight);
+        entityTypeviewStorage = new EntityTypeView(this, Builder, EntityType.Storage, this);
         entityTypeviewStorage.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 100f), Offset.Top(100f) + Offset.Left(250f));
 
-        entityTypeviewProducer = new EntityTypeView(this, Builder, Highlight.EntityType.Producer, _highlight);
+        entityTypeviewProducer = new EntityTypeView(this, Builder, EntityType.Producer, this);
         entityTypeviewProducer.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 100f), Offset.Top(150f) + Offset.Left(250f));
 
-        entityTypeviewConsumer = new EntityTypeView(this, Builder, Highlight.EntityType.Consumer, _highlight);
+        produce = Builder.NewTxt("typeCount").SetFontSize(17).SetText("cnt").SetAlignment(TextAnchor.MiddleRight);
+        produce.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 100f), Offset.Top(150f) + Offset.Left(450f));
+
+        entityTypeviewConsumer = new EntityTypeView(this, Builder, EntityType.Consumer, this);
         entityTypeviewConsumer.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 100f), Offset.Top(200f) + Offset.Left(250f));
 
-        entityTypeviewTransport = new EntityTypeView(this, Builder, Highlight.EntityType.Transport, _highlight);
+        consume = Builder.NewTxt("typeCount").SetFontSize(17).SetText("cnt").SetAlignment(TextAnchor.MiddleRight);
+        consume.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 100f), Offset.Top(200f) + Offset.Left(450f));
+
+        entityTypeviewTransport = new EntityTypeView(this, Builder, EntityType.Transport, this);
         entityTypeviewTransport.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 100f), Offset.Top(250f) + Offset.Left(250f));
+
+        entityTypeviewVehicle = new EntityTypeView(this, Builder, EntityType.Vehicle, this);
+        entityTypeviewVehicle.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 100f), Offset.Top(300f) + Offset.Left(250f));
+
+        onClear();
 
         void onClear()
         {
-            _highlight.clearHighlights();
+            LogWrite.Info("Onclear");
+            clearHighlights();
+            highlightManager.reset();
+            LogWrite.Info("Onclear clearH done");
             searchBox.SetText("");
             search("");
             pname.SetText("None selected");
             ic.SetIcon("");
             ic.SetVisibility(false);
+            LogWrite.Info("typeviews");
             entityTypeviewStorage.setValue();
             entityTypeviewProducer.setValue();
             entityTypeviewConsumer.setValue();
             entityTypeviewTransport.setValue();
+            entityTypeviewVehicle.setValue();
+            produce.SetText("");
+            consume.SetText("");
+            LogWrite.Info("Done");
         }
 
         void onClick(ProductProto product)
         {
             selectedProduct = product;
-            _highlight.clearHighlights();
-            _highlight.highlightUsage(selectedProduct);
+            highlightManager.updateProduct(selectedProduct);
+            highlightUsage();
             ic.SetIcon(selectedProduct.IconPath);
             ic.SetVisibility(true);
             pname.SetText(product.Strings.Name.TranslatedString);
@@ -205,13 +244,10 @@ public class HighlightWindow : WindowView
             entityTypeviewProducer.setValue();
             entityTypeviewConsumer.setValue();
             entityTypeviewTransport.setValue();
-
+            entityTypeviewVehicle.setValue();
+            produce.SetText(highlightManager.getProduce().ToString());
+            consume.SetText(highlightManager.getConsume().ToString());
         }
-        onClear();
-
-        
-
-
 
 
     void search(string text)
@@ -234,5 +270,61 @@ public class HighlightWindow : WindowView
         buttonScrollContainer.SetContentToScroll((IUiElement)productButtonContainer);
 
 
+    }
+
+    public void highlightUsage()
+    {
+        entityHighlighter.Instance.ClearAllHighlights();
+        foreach (EntityType eType in Enum.GetValues(typeof(EntityType)))
+        {
+            foreach (var e in highlightManager.currentProductInfo.entityList(eType).getLyst)
+            {
+                if (entitiesManager.TryGetEntity(e, out IRenderedEntity entity))
+                {
+                    entityHighlighter.Instance.Highlight(entity, highlightManager.ColorScheme[eType]);
+                }
+            }
+        }
+    }
+
+    public int getEntityCount(EntityType entityType)
+    {
+       return  highlightManager.getEntityCount(entityType);
+    }
+
+    public void clearHighlights()
+    {
+        entityHighlighter.Instance.ClearAllHighlights();
+    }
+
+    public void panToEntity(EntityType et, bool next)
+    {
+        EntityId panEntity = highlightManager.getNextEntity(et, next);
+
+        LogWrite.Info($"Panning  to {panEntity.ToString()}");
+
+        if (!(panEntity == EntityId.Invalid))
+        {
+            
+            if (entitiesManager.TryGetEntity(panEntity, out Entity entityOut))
+            {
+                LogWrite.Info($"Panning2 to {entityOut.ToString()}");
+                if (entityOut is LayoutEntity layoutEntity)
+                {
+                    LogWrite.Info($"Panning3 to {layoutEntity.Transform.ToString()}");
+                    cameraController.PanTo(new Tile2f(layoutEntity.Transform.Position.X, layoutEntity.Transform.Position.Y));
+                }
+                else if (entityOut is Vehicle vehicle)
+                {
+                    LogWrite.Info($"Panning4 to {vehicle.Position2f.ToString()}");
+                    cameraController.PanTo(vehicle.Position2f);
+                }
+                else if (entityOut is Transport transport)
+                {
+                    LogWrite.Info($"Panning5 to {transport.Position2f.ToString()}");
+                    cameraController.PanTo(transport.Position2f);
+                }
+            }
+        }
     }
 }

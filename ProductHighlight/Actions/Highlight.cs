@@ -45,10 +45,58 @@ public class Highlight
         Transport
     };
 
+    public class ProduceConsume
+    {
+        private Quantity produce = Quantity.Zero;
+        private Quantity consume = Quantity.Zero;
+
+        public bool isProduced
+        {
+            get { return produce != Quantity.Zero; }
+        }
+
+        public bool isConsumed
+        {
+            get { return consume != Quantity.Zero; }
+        }
+
+        public bool isInUse
+        {
+            get { return (isProduced || isConsumed); }
+        }
+
+    public Quantity totalProduce
+        {
+            get { return produce; }
+        }
+        
+        public Quantity totalConsume
+        {
+            get { return consume; }
+        }
+
+        public void addProduce(Quantity p)
+        {
+            produce += p;
+        }
+
+        public void addConsume(Quantity c)
+        {
+            consume += c;
+        }
+
+        public void add(ProduceConsume a)
+        {
+            addProduce(a.produce);
+            addConsume(a.consume);
+        }
+    }
+
     public class EntityTypeElement
     {
-        public int currentIndex;
+        private int currentIndex;
         public Lyst<EntityId> currentList;
+        public ProduceConsume productProduceConsume;
 
         public EntityTypeElement()
         {
@@ -59,6 +107,7 @@ public class Highlight
         {
             currentIndex = -1;
             currentList = new Lyst<EntityId>();
+            productProduceConsume = new ProduceConsume();
         }
 
         public EntityId nextEntity()
@@ -106,6 +155,7 @@ public class Highlight
     private int storageIndex = -1;
 
     Dict<EntityType, EntityTypeElement> currentEntities;
+
 
     public Highlight(
                         EntitiesManager entitiesManager,
@@ -175,13 +225,16 @@ public class Highlight
             Type entityType = e.GetType();
             if (entityType == typeof(Machine))
             {
-                switch (highlightMachine(e as Machine, highlightProduct))
+                var pc = highlightMachine(e as Machine, highlightProduct);
+                if (pc.isProduced) 
                 {
-                    case 1: currentEntities[EntityType.Producer].currentList.Add(e.Id);
-                        break;
-                    case 2: currentEntities[EntityType.Consumer].currentList.Add(e.Id);
-                        break;
-                    default: break;
+                    currentEntities[EntityType.Producer].currentList.Add(e.Id);
+                    currentEntities[EntityType.Producer].productProduceConsume.add(pc);
+                }
+                if (pc.isConsumed)
+                {
+                    currentEntities[EntityType.Consumer].currentList.Add(e.Id);
+                    currentEntities[EntityType.Consumer].productProduceConsume.add(pc);
                 }
             }
             else if (entityType == typeof(Storage))
@@ -242,38 +295,36 @@ public class Highlight
         return false;
     }
 
-    public int highlightMachine(Machine machine, ProductProto highlightProduct)
+    public ProduceConsume highlightMachine(Machine machine, ProductProto highlightProduct)
     {
-        int needsHighlight = 0; ;
+        ProduceConsume produceConsume = new ProduceConsume();
         ColorRgba color;
 
         foreach (RecipeProto r in machine.RecipesAssigned)
         {
-            foreach (RecipeOutput ri in r.AllOutputs.AsEnumerable())
+            foreach (RecipeOutput ro in r.AllOutputs.AsEnumerable())
+            {
+                if (ro.Product == highlightProduct)
+                {
+                    produceConsume.addProduce(ro.Quantity);
+                }
+            }
+            foreach (RecipeInput ri in r.AllInputs.AsEnumerable())
             {
                 if (ri.Product == highlightProduct)
                 {
-                    needsHighlight = 1;
+                    produceConsume.addConsume(ri.Quantity);
                 }
             }
-            if (needsHighlight == 0)
+            
+            if (produceConsume.isInUse)
             {
-                foreach (RecipeInput ri in r.AllInputs.AsEnumerable())
-                {
-                    if (ri.Product == highlightProduct)
-                    {
-                        needsHighlight = 2;
-                        break;
-                    }
-                }
-            }
-            if (needsHighlight != 0)
-            {
-                color = (needsHighlight == 1) ? colorProducer : colorConsumer;
+                color = (produceConsume.isProduced) ? colorProducer : colorConsumer;
                 _entityHighlighter.Instance.Highlight(machine, color);
             }
-        }
-        return needsHighlight;
+
+          }
+        return produceConsume;
     }
 
     public bool highlightFarm(Farm farm, ProductProto highlightProduct)

@@ -25,7 +25,10 @@ public class EntityList
 
     public void addEntity(EntityId entity)
     {
-        currentList.Add(entity);
+        if (!currentList.Contains(entity))
+        {
+            currentList.Add(entity);
+        }
     }
 
     public EntityId nextEntity()

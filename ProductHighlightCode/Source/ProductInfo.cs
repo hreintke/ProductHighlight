@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static Mafi.Unity.Assets.Unity.TextMeshPro.Fonts;
 
 namespace ProductHighlight;
 
@@ -15,10 +14,13 @@ public class ProductInfo
     Dict<EntityType, EntityList> productEntities;
     public Quantity totalProduced;
     public Quantity totalConsumed;
+    public Quantity totalNeedForBuild;
+
     Quantity storageCapacity;
     Quantity storageInUse;
     Quantity transportInUse;
     Quantity vehicleInUse;
+
 
     public ProductInfo()
     {
@@ -28,10 +30,13 @@ public class ProductInfo
             {EntityType.Consumer,  new EntityList()},
             {EntityType.Storage,   new EntityList()},
             {EntityType.Transport, new EntityList()},
-            {EntityType.Vehicle,   new EntityList()}
+            {EntityType.Vehicle,   new EntityList()},
+            {EntityType.NeedBuild, new EntityList()},
         };
+
         totalProduced = Quantity.Zero;
         totalConsumed = Quantity.Zero;
+        totalNeedForBuild = Quantity.Zero;
         storageCapacity = Quantity.Zero;
         storageInUse = Quantity.Zero;
         transportInUse = Quantity.Zero;
@@ -60,7 +65,12 @@ public class ProductInfo
 
     public void addEntity(EntityType entityType, EntityId entityId)
     {
-            productEntities[entityType].addEntity(entityId);
+        productEntities[entityType].addEntity(entityId);
+    }
+
+    public void addNeeded(Quantity needed)
+    {
+        totalNeedForBuild += needed;
     }
 
     public void addProduced(Quantity produced)

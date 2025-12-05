@@ -93,8 +93,10 @@ public class HighlightWindow : WindowView
     private EntityTypeView entityTypeviewConsumer;
     private EntityTypeView entityTypeviewTransport;
     private EntityTypeView entityTypeviewVehicle;
+    private EntityTypeView entityTypeviewNeeded;
     private Txt produce;
     private Txt consume;
+    private Txt needForBuild;
     private Btn showNextStorage;
     public ProductProto selectedProduct;
     private IOrderedEnumerable<ProductProto> sortedProductProtos;
@@ -131,7 +133,7 @@ public class HighlightWindow : WindowView
     protected override void BuildWindowContent()
     {
         SetTitle("Product highlight");
-        SetContentSize(600f, 350f);
+        SetContentSize(600f, 400f);
         PositionSelfToCenter();
         MakeMovable();
 
@@ -194,19 +196,25 @@ public class HighlightWindow : WindowView
         entityTypeviewProducer.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 100f), Offset.Top(150f) + Offset.Left(250f));
 
         produce = Builder.NewTxt("typeCount").SetFontSize(17).SetText("cnt").SetAlignment(TextAnchor.MiddleRight);
-        produce.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 100f), Offset.Top(150f) + Offset.Left(450f));
+        produce.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(30f, 30f), Offset.Top(155f) + Offset.Left(560f));
 
         entityTypeviewConsumer = new EntityTypeView(this, Builder, EntityType.Consumer, this);
         entityTypeviewConsumer.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 100f), Offset.Top(200f) + Offset.Left(250f));
 
         consume = Builder.NewTxt("typeCount").SetFontSize(17).SetText("cnt").SetAlignment(TextAnchor.MiddleRight);
-        consume.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 100f), Offset.Top(200f) + Offset.Left(450f));
+        consume.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(30f, 30f), Offset.Top(205f) + Offset.Left(560f));
 
         entityTypeviewTransport = new EntityTypeView(this, Builder, EntityType.Transport, this);
         entityTypeviewTransport.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 100f), Offset.Top(250f) + Offset.Left(250f));
 
         entityTypeviewVehicle = new EntityTypeView(this, Builder, EntityType.Vehicle, this);
         entityTypeviewVehicle.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 100f), Offset.Top(300f) + Offset.Left(250f));
+
+        entityTypeviewNeeded = new EntityTypeView(this, Builder, EntityType.NeedBuild, this);
+        entityTypeviewNeeded.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(100f, 100f), Offset.Top(350f) + Offset.Left(250f));
+
+        needForBuild = Builder.NewTxt("typeCount").SetFontSize(17).SetText("cnt").SetAlignment(TextAnchor.MiddleRight);
+        needForBuild.PutToLeftTopOf((IUiElement)GetContentPanel(), new Vector2(30f, 30f), Offset.Top(355f) + Offset.Left(560f));
 
         onClear();
 
@@ -227,8 +235,10 @@ public class HighlightWindow : WindowView
             entityTypeviewConsumer.setValue();
             entityTypeviewTransport.setValue();
             entityTypeviewVehicle.setValue();
+            entityTypeviewNeeded.setValue();
             produce.SetText("");
             consume.SetText("");
+            needForBuild.SetText("");
             LogWrite.Info("Done");
         }
 
@@ -245,8 +255,10 @@ public class HighlightWindow : WindowView
             entityTypeviewConsumer.setValue();
             entityTypeviewTransport.setValue();
             entityTypeviewVehicle.setValue();
+            entityTypeviewNeeded.setValue();
             produce.SetText(highlightManager.getProduce().ToString());
             consume.SetText(highlightManager.getConsume().ToString());
+            needForBuild.SetText(highlightManager.getNeeded().ToString());
         }
 
 

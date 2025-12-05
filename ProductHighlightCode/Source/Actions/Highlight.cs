@@ -20,7 +20,6 @@ using Mafi.Unity.Entities;
 using Mafi.Core.Entities.Static.Layout;
 using Mafi.Unity.InputControl;
 using Microsoft.SqlServer.Server;
-using ProductHighlight.UI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,7 +28,6 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using ProductHighlight.Extensions;
-using ProductHighlight.Logging;
 using Mafi.Core.Entities.Dynamic;
 
 namespace ProductHighlight.Actions;

@@ -33,6 +33,7 @@ public class HighlightWindow : Window
     private readonly Lyst<ProductProto> allProducts;
 
     public ProductProto selectedProduct;
+    private Option<ProductProto> currentProduct = Option.None;
     private IOrderedEnumerable<ProductProto> sortedProductProtos;
     private readonly ProtosDb protosDb;
     private readonly ProductHighlightManager highlightManager;
@@ -75,10 +76,7 @@ public class HighlightWindow : Window
         
         productLabel.Value<Label>("product".AsLoc());
         productLabel.Width(200);
- 
 
-        
-        this.
         protosDb = db;
         highlightManager = highlightM;
         sortedProductProtos = protosDb.Filter<ProductProto>(pp => true).OrderBy(x => x.Strings.Name.TranslatedString);
@@ -89,8 +87,6 @@ public class HighlightWindow : Window
         entitiesManager = eManager;
         Option<ProductProto> p = (ProductProto)protosDb.Get(IdsCore.Products.Recyclables).Value; 
         si = new SingleProductPickerUi(sortedProductProtos.ToLyst, onClick, gp,primaryButtonIfNoProtoSet: true);
-  //      ButtonIcon trashButton = si.AddTrashButton().Toggleable<ButtonIcon>();
- //       si.SwitchButton.Visible<ButtonIcon>(true);
         productRow.Add(si);
         productRow.Add(productLabel);
         clearButton.Width(100.px());
@@ -108,14 +104,8 @@ public class HighlightWindow : Window
         entityTypeviewProducer = new EntityTypeView(EntityType.Producer, this);
         overviewPanel.Add(entityTypeviewProducer);
 
-
         this.Body.Add(overviewPanel);
-        
- 
     }
-
-    Option<ProductProto> currentProduct = Option.None;
-
     void onProductSelected(ProductProto product)
     {
         currentProduct = product;
@@ -193,14 +183,8 @@ public class HighlightWindow : Window
         entityTypeviewProducer.setValue();
         entityTypeviewConsumer.setValue();
         entityTypeviewTransport.setValue();
-        //       entityTypeviewVehicle.setValue();
-        //       entityTypeviewNeeded.setValue();
-        //       produce.SetText(highlightManager.getProduce().ToString());
-        //       consume.SetText(highlightManager.getConsume().ToString());
-        //       needForBuild.SetText(highlightManager.getNeeded().ToString());
-        
-     
     }
+
     void onClear()
     {
         clearHighlights();
@@ -212,9 +196,5 @@ public class HighlightWindow : Window
         entityTypeviewProducer.setValue();
         entityTypeviewConsumer.setValue();
         entityTypeviewTransport.setValue();
-//        produce.SetText("");
-//        consume.SetText("");
-//        needForBuild.SetText("");
     }
-
 }

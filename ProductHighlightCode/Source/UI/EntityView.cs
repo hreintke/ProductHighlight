@@ -30,7 +30,7 @@ public class EntityTypeView : Row
         this.Gap(20.px());
 
         typeName = new Label(new Mafi.Localization.LocStrFormatted(et.ToString()));
-        typeCount = new Label(new LocStrFormatted("cnt"));
+        typeCount = new Label(new LocStrFormatted("-"));
         nextButton = new ButtonText("Next".AsLoc(), () => { hw.panToEntity(entityType, false); });
         prevButton = new ButtonText("Previous".AsLoc(), () => { hw.panToEntity(entityType, true); });
 

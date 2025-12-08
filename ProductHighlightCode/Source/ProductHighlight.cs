@@ -40,6 +40,5 @@ public sealed class ProductHighlight : IMod
 
     public void EarlyInit(DependencyResolver resolver)
     {
-        
     }
 }

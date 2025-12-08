@@ -26,6 +26,7 @@ using Mafi.Unity.Entities;
 using Mafi.Unity.InputControl.ResVis;
 using System;
 using System.CodeDom;
+using System.Collections;
 using System.Collections.Generic;
 using static Mafi.Base.Assets.Base.Buildings;
 using static Mafi.Core.Trains.CargoWagon;
@@ -123,20 +124,13 @@ public class ProductHighlightManager
 
     public void updateProduct(ProductProto productProto)
     {
-        reset();
-
-//        if ((productProto is LooseProductProto lp) && (terrainResourcesProvider.LooseTerrainProducts.Contains(lp)))
-//        {
-//            resActivator.Show(lp);
-//        }
-
-
         Dict<Type, int> entityCount = new Dict<Type, int>();
-        
+
+        reset();
 
         foreach (Entity e in entitiesManager.Entities)
         {
-//            LogWrite.Info(e.GetType().Name);
+
             if (e is IStaticEntity iStatic)
             {
                 if ((iStatic.ConstructionState == ConstructionState.NotInitialized) || 
@@ -171,64 +165,51 @@ public class ProductHighlightManager
             {
                 entityCount[e.GetType()] = 1;
             }
-            if (e is Machine machine)
-            {
-                addMachine(machine, productProto);
-            }
-            else if (e is Farm farm)
-            {
-                addFarm(farm, productProto);
-            }
-            else if (e is AnimalFarm animaalFarm)
-            {
-                addAnimalFarm(animaalFarm, productProto);
-            }
-            else if (e is SettlementFoodModule)
-            {
-                addSettlementFoodModule((SettlementFoodModule)e,  productProto);
-            }
-            else if (e is SettlementServiceModule)
-            {
-                addSettlementServiceModule((SettlementServiceModule)e, productProto);
-            }
-            else if (e is Hospital)
-            {
-                addHospital((Hospital)e, productProto);
-            }
-            else if (e is StorageBase storage)
-            {
-                addStorage(storage, productProto);
-                //                LogWrite.Info($"{e.GetType().Name}");
-            }
-            else if (e is Transport transport)
-            {
-                addTransport(transport, productProto);
-            }
-            else if (e is Truck truck)
-            {
-                addTruck(truck, productProto);
-            }
-            else if (e is CargoWagon)
-            {
-                addCargoWagon((CargoWagon)e, productProto);
-            }
-            else if (e is Excavator excavator)
-            {
-                addExcavator(excavator, productProto);
-            }
-            else if (e is TrainStationModule)
-            {
-                addStationModule((TrainStationModule)e, productProto);
-            }
-            else if (e is TrainStationFuel)
-            {
-                addtrainFuelStation((TrainStationFuel)e, productProto);
-            }
-            else if (e is FuelStation)
-            {
-//                addFuelStation((FuelStation)e, productProto);
-            }
 
+            switch (e)
+            {
+                default:
+                    break;
+                case Machine machine :
+                    addMachine(machine, productProto);
+                    break;
+                case Farm farm :
+                    addFarm(farm, productProto);
+                    break;
+                case AnimalFarm animalFarm :
+                    addAnimalFarm(animalFarm, productProto);
+                    break;
+                case SettlementFoodModule settlementFoodModule:
+                    addSettlementFoodModule(settlementFoodModule, productProto);
+                    break;
+                case SettlementServiceModule settlementServiceModule:
+                    addSettlementServiceModule(settlementServiceModule, productProto);
+                    break;
+                case Hospital hospital :
+                    addHospital(hospital, productProto);
+                    break;
+                case StorageBase storage:
+                    addStorage(storage, productProto);
+                    break;
+                case Transport transport :
+                    addTransport(transport, productProto);
+                    break;
+                case Truck truck:
+                    addTruck(truck, productProto);
+                    break;
+                case CargoWagon cargoWagon :
+                    addCargoWagon(cargoWagon, productProto);
+                    break;
+                case Excavator excavator :
+                    addExcavator(excavator, productProto);
+                    break;
+                case TrainStationModule trainStationModule :
+                    addStationModule((TrainStationModule)e, productProto);
+                    break;
+                case TrainStationFuel trainStationFuel :
+                    addtrainFuelStation(trainStationFuel, productProto);
+                    break;
+            };
         }
     }
 

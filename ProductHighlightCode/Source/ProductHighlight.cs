@@ -9,6 +9,13 @@ namespace ProductHighlight;
 
 public sealed class ProductHighlight : IMod
 {
+
+    ModManifest manifest;
+
+    public ProductHighlight(ModManifest mf)
+    {
+        manifest = mf;
+    }
     public string Name => typeof(ProductHighlight).Assembly.GetName().Name;
 
     public int Version => (typeof(ProductHighlight).Assembly.GetName().Version.Major * 100) +
@@ -20,6 +27,10 @@ public sealed class ProductHighlight : IMod
     public bool IsUiOnly => false;
 
     public Option<IConfig> ModConfig => throw new NotImplementedException();
+
+    public ModManifest Manifest => manifest;
+
+    public ModJsonConfig JsonConfig => new ModJsonConfig(this);
 
     public void ChangeConfigs(Lyst<IConfig> configs)
     {
@@ -40,5 +51,15 @@ public sealed class ProductHighlight : IMod
 
     public void EarlyInit(DependencyResolver resolver)
     {
+    }
+
+    public void MigrateJsonConfig(VersionSlim savedVersion, Dict<string, object> savedValues)
+    {
+
+    }
+
+    public void Dispose()
+    {
+
     }
 }

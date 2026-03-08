@@ -420,10 +420,18 @@ public class ProductHighlightManager
 
     public void addtrainFuelStation(TrainStationFuel trainStationFuel, ProductProto productProto)
     {
-        if ((trainStationFuel.Prototype.PrimaryProduct.Product == productProto) ||
-            ((trainStationFuel.Prototype.SecondaryProduct.HasValue) && (trainStationFuel.Prototype.SecondaryProduct.Value.Product == productProto)))
+
+
+        foreach(var fuel in trainStationFuel.Prototype.AllowedFuels)
         {
-            currentProductInfo.addEntity(EntityType.Consumer, trainStationFuel.Id);
+            if ((fuel.PrimaryProduct.Product == productProto) ||
+                ((fuel.SecondaryProduct.HasValue) && (fuel.SecondaryProduct.Value.Product == productProto)))
+            {
+                currentProductInfo.addEntity(EntityType.Consumer, trainStationFuel.Id);
+            }
+
         }
+
+
     }
 }

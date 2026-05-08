@@ -8,7 +8,7 @@
 	
 	<PropertyGroup>
 		<AssemblyName>$(ModName)</AssemblyName>
-		<Version>5.1.4</Version>
+		<Version>5.1.5</Version>
 		<OutputType>Library</OutputType>
 		<TargetFramework>net48</TargetFramework>
 		<LangVersion>latest</LangVersion>
@@ -42,6 +42,7 @@
 		<ModReleaseFiles Include="$(OutputPath)\$(AssemblyName).dll" />
 		<ModReleaseFiles Include="$(OutputPath)\$(AssemblyName).pdb" />
 		<ModReleaseFiles Include="Manifest.json" />
+		<ModReleaseFiles Include="Thumbnail.png" />
 	</ItemGroup>
 
 	<Target Name="CopyToModsPath" AfterTargets="PostBuildEvent">
